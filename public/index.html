@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lightship Weather</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        obsidian: '#0a0a0c',
+                        cream: '#faf6ef',
+                        ember: '#fa5c40',
+                        pebble: '#141416',
+                        mist: '#242428'
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .prose h1 { font-size: 1.5rem; font-weight: 700; color: #faf6ef; margin-bottom: 0.75rem; }
+        .prose blockquote { background: #1a1a1e; border-left: 3px solid #fa5c40; padding: 0.85rem 1.1rem; border-radius: 0.5rem; color: #d4d4d8; font-size: 0.9rem; margin: 1rem 0; }
+        .prose hr { border-color: #242428; margin: 1.25rem 0; }
+        .prose ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem; list-style: none; padding: 0; margin: 1rem 0; }
+        .prose li { background: #1a1a1e; border: 1px solid #242428; padding: 0.8rem 1rem; border-radius: 0.75rem; font-size: 0.85rem; color: #a1a1aa; }
+        .prose li strong { color: #faf6ef; display: block; font-size: 1rem; margin-top: 0.2rem; }
+        .prose h3 { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; tracking: 0.05em; color: #fa5c40; margin-top: 1.25rem; }
+        .prose p { font-size: 0.9rem; color: #a1a1aa; line-height: 1.6; }
+    </style>
+</head>
+<body class="bg-obsidian text-cream font-sans h-screen flex flex-col overflow-hidden antialiased">
+
+    <!-- Navbar superior -->
+    <header class="h-14 border-b border-mist px-8 flex items-center justify-between bg-obsidian shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="w-6 h-6 rounded-full bg-cream text-obsidian flex items-center justify-center font-bold text-xs">R</div>
+            <span class="text-sm text-zinc-400">/ Styles / <strong class="text-cream font-medium">Lightship Weather</strong></span>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="text-xs font-mono px-3 py-1 rounded-full bg-ember/10 text-ember border border-ember/20">API MD Mode</span>
+        </div>
+    </header>
+
+    <!-- Contenedor Principal Centrado -->
+    <main class="flex-1 max-w-5xl w-full mx-auto p-6 flex flex-col gap-5 overflow-hidden">
+        
+        <!-- Botones para cambiar de ciudad -->
+        <div class="flex items-center gap-2 shrink-0 flex-wrap">
+            <button onclick="cargarCiudad('mexico')" id="btn-mexico" class="chip-btn px-4 py-2 rounded-full text-xs font-semibold transition bg-cream text-obsidian shadow-sm">
+                🇲🇽 México
+            </button>
+            <button onclick="cargarCiudad('madrid')" id="btn-madrid" class="chip-btn px-4 py-2 rounded-full text-xs font-semibold transition bg-pebble text-zinc-400 border border-mist hover:text-cream">
+                🇪🇸 Madrid
+            </button>
+            <button onclick="cargarCiudad('tokio')" id="btn-tokio" class="chip-btn px-4 py-2 rounded-full text-xs font-semibold transition bg-pebble text-zinc-400 border border-mist hover:text-cream">
+                🇯🇵 Tokio
+            </button>
+            <button onclick="cargarCiudad('italia')" id="btn-italia" class="chip-btn px-4 py-2 rounded-full text-xs font-semibold transition bg-pebble text-zinc-400 border border-mist hover:text-cream">
+                🇮🇹 Italia
+            </button>
+            <button onclick="cargarCiudad('portugal')" id="btn-portugal" class="chip-btn px-4 py-2 rounded-full text-xs font-semibold transition bg-pebble text-zinc-400 border border-mist hover:text-cream">
+                🇵🇹 Portugal
+            </button>
+        </div>
+
+        <!-- Tarjeta Principal con la Imagen -->
+        <div id="hero-banner" class="relative rounded-2xl overflow-hidden border border-mist h-60 shrink-0 bg-cover bg-center transition-all duration-500 shadow-xl">
+            <div class="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/30 to-transparent"></div>
+            <div class="absolute bottom-6 left-8 right-8">
+                <span id="label-coordenadas" class="text-xs font-mono font-medium tracking-widest text-ember">19.4326° N, 99.1332° W</span>
+                <h2 id="label-titulo" class="text-4xl font-bold tracking-tight text-cream mt-1">Ciudad de México</h2>
+            </div>
+        </div>
+
+        <!-- Vista Renderizada del Markdown -->
+        <div class="bg-pebble border border-mist rounded-2xl p-6 flex-1 overflow-y-auto min-h-0 shadow-lg">
+            <div class="flex items-center justify-between pb-4 border-b border-mist mb-4">
+                <span class="text-xs font-mono text-zinc-400">Fuente: <code id="archivo-nombre" class="text-ember font-bold">mexico.md</code></span>
+                <span class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Información en tiempo real</span>
+            </div>
+            <div id="markdown-container" class="prose">
+                Cargando información...
+            </div>
+        </div>
+
+    </main>
+
+   <script>
+    // Imágenes estables y garantizadas para cargarse correctamente
+    const fotosReales = {
+        mexico: "https://images.unsplash.com/photo-1512813195386-6cf811ad3542?auto=format&fit=crop&w=1200&q=80", // Ciudad de México (Palacio de Bellas Artes)
+        madrid: "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?auto=format&fit=crop&w=1200&q=80", // Madrid Gran Vía
+        tokio: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=1200&q=80", // Tokio Torre / Skyline
+        italia: "https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=1200&q=80", // Coliseo Romano, Italia
+        portugal: "https://images.unsplash.com/photo-1513735708072-15431d5b63d7?auto=format&fit=crop&w=1200&q=80" // Lisboa / Torre de Belém, Portugal
+    };
+
+    const coords = {
+        mexico: "19.4326° N, 99.1332° W",
+        madrid: "40.4168° N, 3.7038° W",
+        tokio: "35.6762° N, 139.6503° E",
+        italia: "41.9028° N, 12.4964° E",
+        portugal: "38.7223° N, 9.1393° W"
+    };
+
+    const titulos = {
+        mexico: "Ciudad de México",
+        madrid: "Madrid",
+        tokio: "Tokio",
+        italia: "Italia (Roma)",
+        portugal: "Portugal (Lisboa)"
+    };
+
+    let ciudadActual = 'mexico';
+
+    async function cargarCiudad(ciudad) {
+        ciudadActual = ciudad;
+        
+        // Actualizar estilo de los botones
+        document.querySelectorAll('.chip-btn').forEach(btn => {
+            btn.className = "chip-btn px-4 py-2 rounded-full text-xs font-semibold transition bg-pebble text-zinc-400 border border-mist hover:text-cream";
+        });
+        document.getElementById(`btn-${ciudad}`).className = "chip-btn px-4 py-2 rounded-full text-xs font-semibold transition bg-cream text-obsidian shadow-sm";
+
+        // Cambiar imagen exacta y título
+        const banner = document.getElementById('hero-banner');
+        banner.style.backgroundImage = `linear-gradient(to bottom, rgba(10,10,12,0.1), rgba(10,10,12,0.85)), url('${fotosReales[ciudad]}')`;
+        
+        document.getElementById('label-coordenadas').textContent = coords[ciudad];
+        document.getElementById('label-titulo').textContent = titulos[ciudad];
+        document.getElementById('archivo-nombre').textContent = `${ciudad}.md`;
+
+        // Petición a la API local
+        try {
+            const res = await fetch(`/api/clima/${ciudad}`);
+            const datos = await res.json();
+
+            // Renderizar Markdown
+            document.getElementById('markdown-container').innerHTML = marked.parse(datos.contenido_markdown);
+        } catch (err) {
+            document.getElementById('markdown-container').innerHTML = `<p class="text-red-400">Error al conectar con la API local.</p>`;
+        }
+    }
+
+    // Cargar México al inicio
+    cargarCiudad('mexico');
+</script>
+</body>
+</html>
