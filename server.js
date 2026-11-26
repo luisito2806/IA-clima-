@@ -14,19 +14,28 @@ app.use((req, res, next) => {
     next();
 });
 
+// Lista blanca: solo las ciudades que tienen su archivo en datos/.
+// La ciudad que llega en la URL nunca se usa para armar una ruta si no está aquí,
+// así nadie puede pedir "../algo" y leer archivos fuera de la carpeta.
+const CARPETA_DATOS = path.join(__dirname, 'datos');
+const CIUDADES = new Set(
+    fs.readdirSync(CARPETA_DATOS)
+        .filter((archivo) => /^[a-z0-9-]+\.md$/.test(archivo))
+        .map((archivo) => archivo.slice(0, -3))
+);
+
 // Endpoint principal: Obtener clima por ciudad
 app.get('/api/clima/:ciudad', (req, res) => {
     const ciudad = req.params.ciudad.toLowerCase();
-    const rutaArchivo = path.join(__dirname, 'datos', `${ciudad}.md`);
 
-    // Validar si existe el archivo .md
-    if (!fs.existsSync(rutaArchivo)) {
+    if (!CIUDADES.has(ciudad)) {
         return res.status(404).json({
             status: "error",
-            message: `No se encontró información para la ciudad: ${ciudad}`,
-            ciudades_disponibles: ["mexico", "madrid", "tokio"]
+            message: "No se encontró información para esa ciudad",
+            ciudades_disponibles: [...CIUDADES]
         });
     }
+    const rutaArchivo = path.join(CARPETA_DATOS, `${ciudad}.md`);
 
     // Leer el archivo .md
     fs.readFile(rutaArchivo, 'utf8', (err, contenidoMd) => {
