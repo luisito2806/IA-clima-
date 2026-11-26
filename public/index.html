@@ -37,7 +37,7 @@
         .prose p { font-size: 0.9rem; color: #a1a1aa; line-height: 1.6; }
     </style>
 </head>
-<body class="bg-obsidian text-cream font-sans h-screen flex flex-col overflow-hidden antialiased">
+<body class="bg-obsidian text-cream font-sans min-h-screen flex flex-col antialiased">
 
     <!-- Navbar superior -->
     <header class="h-14 border-b border-mist px-8 flex items-center justify-between bg-obsidian shrink-0">
@@ -51,7 +51,7 @@
     </header>
 
     <!-- Contenedor Principal Centrado -->
-    <main class="flex-1 max-w-5xl w-full mx-auto p-6 flex flex-col gap-5 overflow-hidden">
+    <main class="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 flex flex-col gap-5">
         
         <!-- Botones para cambiar de ciudad -->
         <div class="flex items-center gap-2 shrink-0 flex-wrap">
@@ -73,17 +73,17 @@
         </div>
 
         <!-- Tarjeta Principal con la Imagen -->
-        <div id="hero-banner" class="relative rounded-2xl overflow-hidden border border-mist h-60 shrink-0 bg-cover bg-center transition-all duration-500 shadow-xl">
+        <div id="hero-banner" class="relative rounded-2xl overflow-hidden border border-mist h-44 sm:h-60 shrink-0 bg-cover bg-center transition-all duration-500 shadow-xl">
             <div class="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/30 to-transparent"></div>
-            <div class="absolute bottom-6 left-8 right-8">
+            <div class="absolute bottom-5 left-5 right-5 sm:bottom-6 sm:left-8 sm:right-8">
                 <span id="label-coordenadas" class="text-xs font-mono font-medium tracking-widest text-ember">19.4326° N, 99.1332° W</span>
-                <h2 id="label-titulo" class="text-4xl font-bold tracking-tight text-cream mt-1">Ciudad de México</h2>
+                <h2 id="label-titulo" class="text-3xl sm:text-4xl font-bold tracking-tight text-cream mt-1">Ciudad de México</h2>
             </div>
         </div>
 
         <!-- Vista Renderizada del Markdown -->
-        <div class="bg-pebble border border-mist rounded-2xl p-6 flex-1 overflow-y-auto min-h-0 shadow-lg">
-            <div class="flex items-center justify-between pb-4 border-b border-mist mb-4">
+        <div class="bg-pebble border border-mist rounded-2xl p-5 sm:p-6 shadow-lg">
+            <div class="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-mist mb-4">
                 <span class="text-xs font-mono text-zinc-400">Fuente: <code id="archivo-nombre" class="text-ember font-bold">mexico.md</code></span>
                 <span class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Información en tiempo real</span>
             </div>
@@ -101,8 +101,12 @@
         madrid: "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?auto=format&fit=crop&w=1200&q=80", // Madrid Gran Vía
         tokio: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=1200&q=80", // Tokio Torre / Skyline
         italia: "https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=1200&q=80", // Coliseo Romano, Italia
-        portugal: "https://images.unsplash.com/photo-1513735708072-15431d5b63d7?auto=format&fit=crop&w=1200&q=80" // Lisboa / Torre de Belém, Portugal
+        portugal: "https://images.unsplash.com/photo-1548707309-dcebeab9ea9b?auto=format&fit=crop&w=1200&q=80" // Lisboa / Arco de la Rua Augusta, Praça do Comércio
     };
+
+    // Fondo mientras carga la foto, o si la foto deja de existir
+    const fondoSinFoto = "linear-gradient(135deg, #242428, #141416)";
+    const degradado = "linear-gradient(to bottom, rgba(10,10,12,0.1), rgba(10,10,12,0.85))";
 
     const coords = {
         mexico: "19.4326° N, 99.1332° W",
@@ -132,9 +136,17 @@
         document.getElementById(`btn-${ciudad}`).className = "chip-btn px-4 py-2 rounded-full text-xs font-semibold transition bg-cream text-obsidian shadow-sm";
 
         // Cambiar imagen exacta y título
+        // La foto se precarga: si no existe, el recuadro queda con un fondo gris en vez de negro
         const banner = document.getElementById('hero-banner');
-        banner.style.backgroundImage = `linear-gradient(to bottom, rgba(10,10,12,0.1), rgba(10,10,12,0.85)), url('${fotosReales[ciudad]}')`;
-        
+        banner.style.backgroundImage = `${degradado}, ${fondoSinFoto}`;
+        const foto = new Image();
+        foto.onload = () => {
+            if (ciudadActual === ciudad) {
+                banner.style.backgroundImage = `${degradado}, url('${fotosReales[ciudad]}')`;
+            }
+        };
+        foto.src = fotosReales[ciudad];
+
         document.getElementById('label-coordenadas').textContent = coords[ciudad];
         document.getElementById('label-titulo').textContent = titulos[ciudad];
         document.getElementById('archivo-nombre').textContent = `${ciudad}.md`;
@@ -144,8 +156,11 @@
             const res = await fetch(`/api/clima/${ciudad}`);
             const datos = await res.json();
 
-            // Renderizar Markdown
-            document.getElementById('markdown-container').innerHTML = marked.parse(datos.contenido_markdown);
+            // Si mientras tanto se eligió otra ciudad, no se pisa su información
+            if (ciudadActual !== ciudad) return;
+
+            // Renderizar Markdown (breaks: cada renglón del .md es un renglón en la página)
+            document.getElementById('markdown-container').innerHTML = marked.parse(datos.contenido_markdown, { breaks: true });
         } catch (err) {
             document.getElementById('markdown-container').innerHTML = `<p class="text-red-400">Error al conectar con la API local.</p>`;
         }
